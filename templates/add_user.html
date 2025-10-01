@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Добавить пользователя{% endblock %}
+
+{% block content %}
+<h2>Добавление нового пользователя</h2>
+
+<form method="post">
+  <label>Логин:</label><br>
+  <input type="text" name="username" required><br><br>
+
+  <label>Начальный пароль:</label><br>
+  <input type="password" name="password" required><br><br>
+
+  <button type="submit">Создать пользователя</button>
+</form>
+
+<!-- Flash-сообщения -->
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul>
+      {% for message in messages %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<br>
+<a href="/">Вернуться на главную</a>
+{% endblock %}

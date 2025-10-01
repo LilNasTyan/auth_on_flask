@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block title %}Вход в систему{% endblock %}
+
+{% block content %}
+<h2>Авторизация</h2>
+
+<!-- Делаем флэш-уведомления -->
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="flash">
+      {% for message in messages %}
+        <p>{{ message }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<!-- Делаем форму для ввода логина и пароля -->
+<form method="post">
+  <label>Логин:</label>
+  <input type="text" name="username" required>
+
+  <label>Пароль:</label>
+  <input type="password" name="password" required>
+
+  <button type="submit">Войти</button>
+</form>
+{% endblock %}

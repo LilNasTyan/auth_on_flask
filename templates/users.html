@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Список пользователей{% endblock %}
+
+{% block content %}
+<h2>Пользователи</h2>
+<a href="/add_user">Добавить пользователя</a>
+<table border="1" cellpadding="5" cellspacing="0">
+  <tr>
+      <th>ID</th>
+      <th>Логин</th>
+      <th>Роль</th>
+      <th>Нужно сменить пароль</th>
+      <th>Действия</th>
+  </tr>
+  {% for user in users %}
+  <tr>
+      <td>{{ user.id }}</td>
+      <td>{{ user.username }}</td>
+      <td>{{ user.role }}</td>
+      <td>{% if user.must_change_password %}Да{% else %}Нет{% endif %}</td>
+      <td>
+        <a href="/edit_user/{{ user.id }}">Редактировать</a> |
+        <form method="post" action="/delete_user/{{ user.id }}" style="display:inline;">
+          <button type="submit" onclick="return confirm('Вы точно хотите удалить пользователя {{ user.username }}?');">
+            Удалить
+          </button>
+        </form>
+      </td>
+  </tr>
+  {% endfor %}
+</table>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul>
+      {% for message in messages %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<br>
+<a href="/">Вернуться на главную</a>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block title %}Редактировать пользователя{% endblock %}
+
+{% block content %}
+<h2>Редактирование пользователя {{ user.username }}</h2>
+
+<form method="post">
+  <label>Логин:</label><br>
+  <input type="text" name="username" value="{{ user.username }}"><br><br>
+
+  <label>Новый пароль (оставьте пустым, чтобы оставить текущий):</label><br>
+  <input type="password" name="password"><br><br>
+
+  <button type="submit">Сохранить изменения</button>
+  <button type="submit" name="set_random_password">Задать случайный пароль</button>
+</form>
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul>
+      {% for message in messages %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+
+<br>
+<a href="/users">Вернуться к списку пользователей</a>
+{% endblock %}

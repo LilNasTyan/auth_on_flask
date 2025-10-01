@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Главная страница{% endblock %}
+
+{% block content %}
+<h1>Добро пожаловать! Вы попали на учебный проект LilNasTyan :)</h1>
+
+{% if "user_id" in session %}
+  <p>Вы вошли в систему</p>
+  <a href="/users">Панель пользователей (Только для администратора)</a><br>
+  <a href="/logout">Выйти</a>
+{% else %}
+  <a href="/login">
+    <button>Войти</button>
+  </a>
+{% endif %}
+
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul>
+      {% for message in messages %}
+        <li>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+{% endblock %}
