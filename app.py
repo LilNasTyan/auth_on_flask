@@ -3,6 +3,8 @@ from dotenv import load_dotenv
 from models import db, User
 from routes.auth import auth_bp
 from datetime import datetime, timezone
+from logging_system import audit_logger
+from routes.logs import audit_bp
 import os
 
 
@@ -16,9 +18,12 @@ app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL")
 db.init_app(app)
 
+# Инициализация модуля логирования
+audit_logger.init_app(app)
+
 # Регистрируем бп
 app.register_blueprint(auth_bp)
-
+app.register_blueprint(audit_bp)
 
 # Создаём админа
 def create_default_admin():

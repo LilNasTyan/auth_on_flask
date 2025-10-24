@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+
+{% block title %}Логи{% endblock %}
+
+{% block content %}
+<h2>Логи</h2>
+
+<!-- Флэш-уведомления -->
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div class="flash">
+      {% for message in messages %}
+        <p>{{ message }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+{% endwith %}
+
+<div class="filters">
+    <h3>Фильтры:</h3>
+    <form id="filterForm">
+        <div class="filter-group">
+            <label for="username">Пользователь:</label>
+            <input type="text" id="username" name="username" placeholder="Введите логин">
+        </div>
+        
+        <div class="filter-group">
+            <label for="action_type">Тип действия:</label>
+            <select id="action_type" name="action_type">
+                <option value="">Все действия</option>
+                <option value="login">Вход в систему</option>
+                <option value="logout">Выход из системы</option>
+                <option value="add_user">Добавление пользователя</option>
+                <option value="edit_user">Редактирование пользователя</option>
+                <option value="delete_user">Удаление пользователя</option>
+                <option value="change_password">Смена пароля</option>
+                <option value="view_users">Просмотр пользователей</option>
+                <option value="view_audit_logs">Просмотр логов</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="status">Статус:</label>
+            <select id="status" name="status">
+                <option value="">Все статусы</option>
+                <option value="success">Успешно</option>
+                <option value="failed">Ошибка</option>
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="date_from">С:</label>
+            <input type="datetime-local" id="date_from" name="date_from">
+        </div>
+        
+        <div class="filter-group">
+            <label for="date_to">По:</label>
+            <input type="datetime-local" id="date_to" name="date_to">
+        </div>
+        
+        <div class="filter-group">
+            <button type="submit">Применить фильтры</button>
+            <button type="button" onclick="resetFilters()">Сбросить</button>
+        </div>
+    </form>
+</div>
+
+<table class="logs-table">
+    <thead>
+        <tr>
+            <th>Время</th>
+            <th>Пользователь</th>
+            <th>Тип действия</th>
+            <th>Статус</th>
+            <th>Сообщение</th>
+        </tr>
+    </thead>
+    <tbody id="logsTable">
+        {% for log in logs %}
+        <tr>
+            <td>{{ log.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            <td>{{ log.username }}</td>
+            <td>{{ log.action_type }}</td>
+            <td class="{{ log.status }}">
+                {% if log.status == "success" %}
+                    Успешно
+                {% else %}
+                    Ошибка
+                {% endif %}
+            </td>
+            <td>{{ log.message or '' }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<div class="navigation-links">
+    <a href="/users" class="btn btn-secondary">← Назад к пользователям</a>
+</div>
+
+
+<script>
+    document.getElementById('filterForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        applyFilters();
+    });
+
+    function applyFilters() {
+        const formData = new FormData(document.getElementById('filterForm'));
+        const params = new URLSearchParams(formData);
+        
+        fetch(`/api/audit_logs?${params}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(logs => {
+                const table = document.getElementById('logsTable');
+                table.innerHTML = logs.map(log => `
+                    <tr>
+                        <td>${new Date(log.timestamp).toLocaleString()}</td>
+                        <td>${log.username}</td>
+                        <td>${log.action_type}</td>
+                        <td class="${log.status}">
+                            ${log.status === 'success' ? 'Успешно' : 'Ошибка'}
+                        </td>
+                        <td>${log.message || ''}</td>
+
+                    </tr>
+                `).join('');
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Ошибка при загрузке логов');
+            });
+    }
+
+    function resetFilters() {
+        document.getElementById('filterForm').reset();
+        applyFilters();
+    }
+
+    // Загружаем логи при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        applyFilters();
+    });
+</script>
+{% endblock %}
