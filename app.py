@@ -1,11 +1,12 @@
 from flask import Flask, render_template
 from dotenv import load_dotenv
 from models import db, User
-from routes.auth import auth_bp
 from datetime import datetime, timezone
 from logging_system import audit_logger
-from routes.logs import audit_bp
 import os
+from routes.auth import auth_bp
+from routes.logs import audit_bp
+from routes.obfuscation import obfuscation_bp
 
 
 load_dotenv()
@@ -24,6 +25,7 @@ audit_logger.init_app(app)
 # Регистрируем бп
 app.register_blueprint(auth_bp)
 app.register_blueprint(audit_bp)
+app.register_blueprint(obfuscation_bp)
 
 # Создаём админа
 def create_default_admin():

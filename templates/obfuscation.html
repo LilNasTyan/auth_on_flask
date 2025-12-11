@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+
+{% block title %}Обфускация текста{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Обфускация текстовых данных</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header">
+            <ul class="nav nav-tabs card-header-tabs" id="obfuscationTabs" role="tablist">
+                <li class="nav-item">
+                    <a class="nav-link active" id="web-tab" data-bs-toggle="tab" href="#web">
+                        Веб-интерфейс
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" id="cli-tab" data-bs-toggle="tab" href="#cli">
+                        Командная строка
+                    </a>
+                </li>
+            </ul>
+        </div>
+        
+        <div class="card-body">
+            <div class="tab-content" id="obfuscationTabsContent">
+                <!-- Веб-интерфейс -->
+                <div class="tab-pane fade show active" id="web" role="tabpanel">
+                    <form id="obfuscationForm">
+                        <div class="mb-3">
+                            <label class="form-label">Выберите откуда текст:</label>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="input_type" 
+                                       id="inputText" value="text" checked>
+                                <label class="form-check-label" for="inputText">
+                                    Ввод здесь
+                                </label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="input_type" 
+                                       id="inputFile" value="file">
+                                <label class="form-check-label" for="inputFile">
+                                    Загрузка из файла
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3" id="textInputArea">
+                            <label for="textArea" class="form-label">Введите текст:</label>
+                            <textarea class="form-control" id="textArea" rows="8" 
+                                      placeholder="Введите текст"></textarea>
+                        </div>
+                        
+                        <div class="mb-3 d-none" id="fileInputArea">
+                            <label for="fileInput" class="form-label">Выберите файл:</label>
+                            <input class="form-control" type="file" id="fileInput" accept=".txt,.text">
+                            <div class="form-text">(Поддерживаются файлы txt)</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Вывод результата:</label>
+                            <select class="form-select" id="outputType">
+                                <option value="preview">Здесь</option>
+                                <option value="file">Скачать файл</option>
+                                <option value="console">Вывод в консоль</option>
+                            </select>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-shield-lock"></i> Обфусцировать
+                        </button>
+                    </form>
+                    
+                    <div id="resultArea" class="mt-4 d-none">
+                        <h4>Результат обфускации</h4>
+                        <div class="card">
+                            <div class="card-body">
+                                <pre id="resultText" class="mb-0"></pre>
+                            </div>
+                        </div>
+                        <div id="resultStats" class="mt-2"></div>
+                        <div id="downloadArea" class="mt-3 d-none">
+                            <a id="downloadLink" class="btn btn-success">
+                                <i class="bi bi-download"></i> Скачать файл
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Командная строка -->
+                <div class="tab-pane fade" id="cli" role="tabpanel">
+                    <h5>CLI</h5>
+                    <p>Примеры запросов:</p>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <code>POST /api/obfuscate_cli</code>
+                        </div>
+                        <div class="card-body">
+                            <pre class="mb-0">
+                            curl -X POST http://localhost:5000/api/obfuscate_cli \
+                              -H "Content-Type: application/json" \
+                              -d '{"text": "+7 (123) 456-78-90, examle@mail.com"}'
+                            </pre>
+                        </div>
+                    </div>
+                    
+                    <div class="card">
+                        <div class="card-header">
+                            Загрузка из файла и сохранение в файл
+                        </div>
+                        <div class="card-body">
+                            <pre class="mb-0">
+                            curl -X POST http://localhost:5000/api/obfuscate_cli \
+                              -H "Content-Type: application/json" \
+                              -d '{"source": "file",
+                              "filepath": "test.txt",
+                              "output": "file",
+                              "output_file": "output.txt" }'</pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const textRadio = document.getElementById('inputText');
+    const fileRadio = document.getElementById('inputFile');
+    const textArea = document.getElementById('textInputArea');
+    const fileArea = document.getElementById('fileInputArea');
+    
+    textRadio.addEventListener('change', function() {
+        textArea.classList.remove('d-none');
+        fileArea.classList.add('d-none');
+    });
+    
+    fileRadio.addEventListener('change', function() {
+        textArea.classList.add('d-none');
+        fileArea.classList.remove('d-none');
+    });
+    
+    const form = document.getElementById('obfuscationForm');
+    form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData();
+        formData.append('input_type', document.querySelector('input[name="input_type"]:checked').value);
+        formData.append('output_type', document.getElementById('outputType').value);
+        
+        if (document.getElementById('inputText').checked) {
+            formData.append('text', document.getElementById('textArea').value);
+        } else {
+            const fileInput = document.getElementById('fileInput');
+            if (fileInput.files.length > 0) {
+                formData.append('file', fileInput.files[0]);
+            }
+        }
+        
+        try {
+            const response = await fetch('/api/obfuscate', {
+                method: 'POST',
+                body: formData
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                const resultArea = document.getElementById('resultArea');
+                resultArea.classList.remove('d-none');
+                
+                if (result.download_url) {
+                    document.getElementById('downloadArea').classList.remove('d-none');
+                    document.getElementById('downloadLink').href = result.download_url;
+                    document.getElementById('downloadLink').download = result.filename;
+                } else {
+                    document.getElementById('downloadArea').classList.add('d-none');
+                }
+                
+                if (result.obfuscated_text) {
+                    document.getElementById('resultText').textContent = result.obfuscated_text;
+                }
+
+            } else {
+                alert('Ошибка: ' + (result.error || 'Неизвестная ошибка'));
+            }
+        } catch (error) {
+            alert('Ошибка при выполнении запроса: ' + error);
+        }
+    });
+});
+</script>
+{% endblock %}

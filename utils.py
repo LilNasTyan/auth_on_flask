@@ -15,11 +15,17 @@ def is_password_strong(password):
     return True
 
 
-PASSWORD_EXPIRE_DAYS = 1
+PASSWORD_EXPIRE_DAYS = 30
 
 # Проверка жизни пароля
 def is_password_expired(user):
     if not user.password_changed_at:
-        return True  # если даты нет, считаем срок истекшим
-    return datetime.now(timezone.utc) - user.password_changed_at > timedelta(days=PASSWORD_EXPIRE_DAYS)
+        return True
+
+    if user.password_changed_at.tzinfo is None:
+        password_changed_aware = user.password_changed_at.replace(tzinfo=timezone.utc)
+    else:
+        password_changed_aware = user.password_changed_at
+
+    return datetime.now(timezone.utc) - password_changed_aware > timedelta(days=PASSWORD_EXPIRE_DAYS)
 

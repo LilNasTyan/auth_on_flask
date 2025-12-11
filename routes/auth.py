@@ -26,7 +26,7 @@ def login():
         if user and user.check_password(password):
             session["user_id"] = user.id
 
-            # Логируем успешный вход
+            # Логирование успешного входа
             audit_logger.log_action(
                 action_type="login",
                 status="success",
@@ -45,7 +45,7 @@ def login():
             flash("Вход выполнен успешно")
             return redirect("/")
         else:
-            # Логируем неудачную попытку входа
+            # Логирование неудачной попытки входа
             audit_logger.log_action(
                 action_type="login",
                 status="failed",
