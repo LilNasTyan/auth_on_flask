@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, redirect, session, flash
-from models import User, db
+from models import User, db, Role
 from datetime import timezone, datetime
-from utils import is_password_strong, is_password_expired
+from utils import is_password_strong, is_password_expired, permission_required
 from logging_system import audit_logger
 import random
 import string
@@ -26,7 +26,11 @@ def login():
         if user and user.check_password(password):
             session["user_id"] = user.id
 
-            # Логирование успешного входа
+            # Сохранение информации о ролях в сессии
+            session["user_roles"] = user.get_role_names()
+            session["user_permissions"] = user.get_all_permissions()
+
+            # Успешный вход
             audit_logger.log_action(
                 action_type="login",
                 status="success",
@@ -45,7 +49,7 @@ def login():
             flash("Вход выполнен успешно")
             return redirect("/")
         else:
-            # Логирование неудачной попытки входа
+            # Неудачная попытка входа
             audit_logger.log_action(
                 action_type="login",
                 status="failed",
@@ -58,20 +62,8 @@ def login():
 
 
 @auth_bp.route("/add_user", methods=["GET", "POST"])
+@permission_required('add_users')
 def add_user():
-    if "user_id" not in session:
-        return redirect("/login")
-
-    current_user = User.query.get(session["user_id"])
-    if current_user.role != "admin":
-        audit_logger.log_action(
-            action_type="add_user",
-            status="failed",
-            message="Попытка создания пользователя без прав администратора"
-        )
-        flash("Только администратор может создавать пользователя")
-        return redirect("/")
-
     if request.method == "POST":
         username = request.form["username"]
         password = request.form["password"]
@@ -99,6 +91,11 @@ def add_user():
         new_user.must_change_password = True
         new_user.password_changed_at = datetime.now(timezone.utc)
 
+        # Назначение роли "user" по умолчанию
+        user_role = Role.query.filter_by(name='user').first()
+        if user_role:
+            new_user.roles.append(user_role)
+
         db.session.add(new_user)
         db.session.commit()
 
@@ -114,20 +111,8 @@ def add_user():
 
 
 @auth_bp.route("/users")
+@permission_required('view_users')
 def list_users():
-    if "user_id" not in session:
-        return redirect("/login")
-
-    current_user = User.query.get(session["user_id"])
-    if current_user.role != "admin":
-        audit_logger.log_action(
-            action_type="view_users",
-            status="failed",
-            message="Попытка просмотра списка пользователей без прав администратора"
-        )
-        flash("Только администратор может просматривать пользователей")
-        return redirect("/")
-
     audit_logger.log_action(
         action_type="view_users",
         status="success",
@@ -138,20 +123,8 @@ def list_users():
 
 
 @auth_bp.route("/edit_user/<int:user_id>", methods=["GET", "POST"])
+@permission_required('edit_users')
 def edit_user(user_id):
-    if "user_id" not in session:
-        return redirect("/login")
-
-    current_user = User.query.get(session["user_id"])
-    if current_user.role != "admin":
-        audit_logger.log_action(
-            action_type="edit_user",
-            status="failed",
-            message="Попытка редактирования пользователя без прав администратора"
-        )
-        flash("Только администратор может редактировать пользователей")
-        return redirect("/")
-
     user = User.query.get_or_404(user_id)
 
     if request.method == "POST":
@@ -206,20 +179,9 @@ def edit_user(user_id):
 
 
 @auth_bp.route("/delete_user/<int:user_id>", methods=["POST"])
+@permission_required('delete_users')
 def delete_user(user_id):
-    if "user_id" not in session:
-        return redirect("/login")
-
     current_user = User.query.get(session["user_id"])
-    if current_user.role != "admin":
-        audit_logger.log_action(
-            action_type="delete_user",
-            status="failed",
-            message="Попытка удаления пользователя без прав администратора"
-        )
-        flash("Только администратор может удалять пользователей")
-        return redirect("/users")
-
     user = User.query.get_or_404(user_id)
 
     if user.id == current_user.id:
@@ -256,7 +218,11 @@ def logout():
             username=username
         )
 
-    session.pop("user_id", None)
+        # Очищение сессии
+        session.pop("user_id", None)
+        session.pop("user_roles", None)
+        session.pop("user_permissions", None)
+
     flash("Вы вышли из системы")
     return redirect("/")
 
@@ -304,4 +270,3 @@ def change_password():
         return redirect("/")
 
     return render_template("change_password.html")
-

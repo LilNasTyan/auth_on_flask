@@ -2,6 +2,7 @@ from flask import Blueprint, request, redirect, session, flash, jsonify, render_
 from models import User, AuditLog
 from datetime import datetime
 from logging_system import audit_logger
+from utils import permission_required
 
 
 # Создаем новый Blueprint для аудита
@@ -9,8 +10,8 @@ audit_bp = Blueprint("audit", __name__, template_folder="../templates")
 
 
 @audit_bp.route("/logs")
+@permission_required('view_logs')
 def audit_logs():
-    """Страница просмотра логов аудита"""
     if "user_id" not in session:
         return redirect("/login")
 
@@ -19,7 +20,6 @@ def audit_logs():
         flash("Только администратор может просматривать логи")
         return redirect("/")
 
-    # Получаем логи из базы данных
     logs = AuditLog.query.order_by(AuditLog.timestamp.desc()).limit(100).all()
 
     audit_logger.log_action(
@@ -32,8 +32,8 @@ def audit_logs():
 
 
 @audit_bp.route("/api/audit_logs")
+@permission_required('view_logs')
 def api_audit_logs():
-    """API для получения логов (можно использовать для фильтрации)"""
     if "user_id" not in session:
         return jsonify({"error": "Unauthorized"}), 401
 

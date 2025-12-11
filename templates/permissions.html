@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+
+{% block title %}Разрешения{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Управление разрешениями</h2>
+    
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Список разрешений</h5>
+            <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createPermissionModal">
+                <i class="bi bi-plus-circle"></i> Создать разрешение
+            </button>
+        </div>
+        <div class="card-body">
+            {% if permissions_by_category %}
+                {% for item in permissions_by_category %}
+                    <h5 class="mt-4">{{ item.category }}</h5>
+                    <div class="row">
+                        {% for perm in item.permissions %}
+                        <div class="col-md-6 mb-3">
+                            <div class="card">
+                                <div class="card-body">
+                                    <h6 class="card-title">{{ perm.name }}</h6>
+                                    <p class="card-text text-muted">{{ perm.description or '—' }}</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small>ID: {{ perm.id }}</small>
+                                        <button class="btn btn-sm btn-outline-danger delete-permission"
+                                                data-perm-id="{{ perm.id }}"
+                                                data-perm-name="{{ perm.name }}">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted">Нет разрешений</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно создания разрешения -->
+<div class="modal fade" id="createPermissionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Создание нового разрешения</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="createPermissionForm">
+                    <div class="mb-3">
+                        <label class="form-label">Название разрешения *</label>
+                        <input type="text" class="form-control" id="permissionName" required>
+                        <small class="form-text text-muted">Используйте snake_case (например, view_users)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Описание</label>
+                        <textarea class="form-control" id="permissionDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Категория</label>
+                        <input type="text" class="form-control" id="permissionCategory">
+                        <small class="form-text text-muted">Группировка разрешений (например, Управление пользователями)</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="savePermissionBtn">Создать</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Создание разрешения
+    document.getElementById('savePermissionBtn').addEventListener('click', async function() {
+        const name = document.getElementById('permissionName').value.trim();
+        const description = document.getElementById('permissionDescription').value.trim();
+        const category = document.getElementById('permissionCategory').value.trim();
+
+        if (!name) {
+            alert('Введите название разрешения');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/permissions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: name,
+                    description: description,
+                    category: category || null
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert('Ошибка: ' + result.error);
+            }
+        } catch (error) {
+            alert('Ошибка при создании разрешения: ' + error);
+        }
+    });
+
+    // Удаление разрешения
+    document.querySelectorAll('.delete-permission').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const permId = this.dataset.permId;
+            const permName = this.dataset.permName;
+
+            if (confirm(`Вы уверены, что хотите удалить разрешение "${permName}"?`)) {
+                fetch(`/api/permissions/${permId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert(result.message);
+                        location.reload();
+                    } else {
+                        alert('Ошибка: ' + result.error);
+                    }
+                })
+                .catch(error => {
+                    alert('Ошибка при удалении разрешения: ' + error);
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

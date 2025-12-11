@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Роли пользователя {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Управление ролями пользователя: {{ user.username }}</h2>
+    
+    <div class="card">
+        <div class="card-header">
+            <h5 class="mb-0">Назначение ролей</h5>
+        </div>
+        <div class="card-body">
+            <div class="mb-4">
+                <h6>Выберите роли для пользователя:</h6>
+                <div id="rolesSelection">
+                    {% for role in all_roles %}
+                    <div class="form-check mb-2">
+                        <input class="form-check-input role-checkbox"
+                               type="checkbox"
+                               value="{{ role.id }}"
+                               id="role-{{ role.id }}"
+                               {% if role in user.roles %}checked{% endif %}>
+                        <label class="form-check-label" for="role-{{ role.id }}">
+                            <strong>{{ role.name }}</strong> - {{ role.description or '—' }}
+                            <br>
+                            <small class="text-muted">
+                                Разрешения:
+                                {% for perm in role.permissions %}
+                                    <span class="badge bg-secondary">{{ perm.name }}</span>
+                                {% endfor %}
+                            </small>
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <button class="btn btn-primary" id="saveRolesBtn">
+                    <i class="bi bi-save"></i> Сохранить изменения
+                </button>
+                <a href="/users" class="btn btn-secondary">Назад к списку пользователей</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <h5>Текущие разрешения пользователя:</h5>
+        <div class="alert alert-info">
+            {% for perm in user.get_all_permissions() %}
+                <span class="badge bg-primary mb-1">{{ perm }}</span>
+            {% else %}
+                <p>У пользователя нет разрешений</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('saveRolesBtn').addEventListener('click', async function() {
+        // Собираем выбранные роли
+        const checkboxes = document.querySelectorAll('.role-checkbox:checked');
+        const roleIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+        try {
+            const response = await fetch(`/api/user/{{ user.id }}/roles`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    role_ids: roleIds
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                alert(result.message);
+                location.reload();
+            } else {
+                alert('Ошибка: ' + result.error);
+            }
+        } catch (error) {
+            alert('Ошибка при сохранении ролей: ' + error);
+        }
+    });
+});
+</script>
+{% endblock %}

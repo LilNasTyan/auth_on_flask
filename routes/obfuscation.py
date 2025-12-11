@@ -3,11 +3,14 @@ import os
 import tempfile
 from datetime import datetime
 from obfuscation import TextObfuscator
+from utils import permission_required
+
 
 obfuscation_bp = Blueprint("obfuscation", __name__, template_folder="../templates")
 
 
 @obfuscation_bp.route("/obfuscate")
+@permission_required('use_obfuscation')
 def obfuscate_page():
     if "user_id" not in session:
         return redirect("/login")
@@ -16,6 +19,7 @@ def obfuscate_page():
 
 
 @obfuscation_bp.route("/api/obfuscate", methods=["POST"])
+@permission_required('use_obfuscation')
 def api_obfuscate():
     if "user_id" not in session:
         return jsonify({"error": "Ошибка авторизации"}), 401
@@ -70,6 +74,7 @@ def api_obfuscate():
 
 
 @obfuscation_bp.route("/api/obfuscate_cli", methods=["POST"])
+@permission_required('use_obfuscation')
 def api_obfuscate_cli():
     data = request.get_json()
 
@@ -107,6 +112,7 @@ def api_obfuscate_cli():
 
 
 @obfuscation_bp.route("/download/<filename>")
+@permission_required('use_obfuscation')
 def download_file(filename):
     # Скачивание файла
     if "user_id" not in session:
